@@ -10,3 +10,6 @@ app/data/*
 
 # Virtual environments
 .venv
+
+# Database
+instance

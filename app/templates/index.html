@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upcoming Fixtures</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-4">Upcoming Fixtures</h1>
+
+        <!-- Betting Controls -->
+        <div class="mb-4 flex space-x-4">
+            <select id="betType" class="p-2 border rounded">
+                <option value="single">Single</option>
+                <option value="accumulator">Accumulator</option>
+            </select>
+            <input type="text" id="username" placeholder="Username" class="p-2 border rounded w-1/3">
+            <input type="text" id="stake" placeholder="Stake" class="p-2 border rounded w-1/3">
+            <button onclick="placeBet()" class="bg-green-500 text-white p-2 rounded">
+                Place Bet
+            </button>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="mb-4 flex space-x-4">
+            <input type="text" id="filterDiv" placeholder="Division" class="p-2 border rounded">
+            <input type="date" id="filterDate" class="p-2 border rounded">
+            <input type="time" id="filterTime" class="p-2 border rounded">
+            <button onclick="filterFixtures()" class="bg-blue-500 text-white p-2 rounded">
+                Filter Fixtures
+            </button>
+        </div>        
+
+        <!-- Fixtures Table -->
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+            <table class="min-w-full border-collapse">
+                <thead class="bg-blue-500 text-white">
+                    <tr>
+                        <th class="p-2">Select</th>
+                        <th class="p-2">Div</th>
+                        <th class="p-2">Date</th>
+                        <th class="p-2">Time</th>
+                        <th class="p-2">Home</th>
+                        <th class="p-2">Away</th>
+                        <th class="p-2">B365 Home</th>
+                        <th class="p-2">B365 Draw</th>
+                        <th class="p-2">B365 Away</th>
+                    </tr>
+                </thead>
+                <tbody id="fixturesTable">
+                    {% for row in fixtures %}
+                    <tr class="border-b">
+                        <td class="p-2 text-center">
+                            <input type="checkbox" class="fixture-checkbox" data-home="{{ row['Home'] }}" data-away="{{ row['Away'] }}">
+                        </td>
+                        <td class="p-2">{{ row['Div'] }}</td>
+                        <td class="p-2">{{ row['Date'] }}</td>
+                        <td class="p-2">{{ row['Time'] }}</td>
+                        <td class="p-2">{{ row['Home'] }}</td>
+                        <td class="p-2">{{ row['Away'] }}</td>
+                        <td class="p-2">{{ row['B365H'] }}</td>
+                        <td class="p-2">{{ row['B365D'] }}</td>
+                        <td class="p-2">{{ row['B365A'] }}</td>
+                        <td class="p-2">
+                            <select class="market-select p-1 border rounded">
+                                <option value="home">Home</option>
+                                <option value="draw">Draw</option>
+                                <option value="away">Away</option>
+                            </select>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>                
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function filterFixtures() {
+            let div = document.getElementById("filterDiv").value;
+            let date = document.getElementById("filterDate").value;
+            let time = document.getElementById("filterTime").value;
+
+            let params = new URLSearchParams();
+            if (div) params.append("Div", div);  // ✅ Ensure these match the API
+            if (date) params.append("Date", date);
+            if (time) params.append("Time", time);
+
+            try {
+                let response = await fetch(`http://127.0.0.1:5000/fixtures/api?${params.toString()}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                let fixtures = await response.json();
+
+                console.log("Received fixtures:", fixtures);  // ✅ Debugging output
+
+                let tableBody = document.getElementById("fixturesTable");
+                tableBody.innerHTML = "";
+
+                fixtures.forEach(fixture => {
+                    let row = `
+                        <tr class="border-b">
+                            <td class="p-2">${fixture.Div}</td>
+                            <td class="p-2">${fixture.Date}</td>
+                            <td class="p-2">${fixture.Time}</td>
+                            <td class="p-2">${fixture.Home}</td>
+                            <td class="p-2">${fixture.Away}</td>
+                            <td class="p-2">${fixture.B365H}</td>
+                            <td class="p-2">${fixture.B365D}</td>
+                            <td class="p-2">${fixture.B365A}</td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+            } catch (error) {
+                console.error("Error fetching fixtures:", error);
+            }
+        }
+    </script>
+
+    <script>
+        async function placeBet() {
+            let betType = document.getElementById("betType").value;
+            let username = document.getElementById("username").value;
+            let stake = document.getElementById("stake").value;
+            let selectedFixtures = [];
+
+            let firstOdds = null; // Store first selection's odds separately
+
+            document.querySelectorAll(".fixture-checkbox:checked").forEach(checkbox => {
+                let row = checkbox.closest("tr");
+                let selectedMarket = row.querySelector("select").value; 
+
+                let oddsCellIndex = selectedMarket === "home" ? 6 : selectedMarket === "draw" ? 7 : 8;
+                let odds = parseFloat(row.children[oddsCellIndex].textContent.trim());  
+
+                if (!firstOdds) firstOdds = odds; // Save first odds for the Bet model
+
+                selectedFixtures.push({
+                    home: checkbox.dataset.home,
+                    away: checkbox.dataset.away,
+                    market: selectedMarket,
+                    odds: odds // Keep in selection for display but NOT in main odds field
+                });
+            });
+
+            if (!username || selectedFixtures.length === 0 || !stake) {
+                alert("Please enter a username, stake, and select at least one fixture.");
+                return;
+            }
+
+            let betData = {
+                user_id: username,
+                bet_type: betType,
+                stake: parseFloat(stake),
+                odds: firstOdds,  // Send only a single float
+                selections: selectedFixtures
+            };
+
+            console.log("🔹 Sending Bet Data:", betData); // Debugging output
+
+            try {
+                let response = await fetch("http://127.0.0.1:5000/bets", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(betData)
+                });
+
+                if (response.ok) {
+                    let result = await response.json();
+                    alert("Bet placed successfully!");
+                    console.log("Bet Result:", result);
+                } else {
+                    let errorData = await response.json();
+                    alert("Error placing bet: " + (errorData.message || "Unknown error"));
+                }
+            } catch (error) {
+                console.error("API Error:", error);
+                alert("Failed to connect to the server.");
+            }
+        }
+    </script>
+</body>
+</html>
