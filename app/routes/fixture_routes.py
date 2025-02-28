@@ -14,6 +14,9 @@ def load_fixtures():
                 df["Date"], dayfirst=True, errors="coerce"
             ).dt.strftime("%Y-%m-%d")
 
+        # Normalize column names to lowercase to avoid JS mismatches
+        df.columns = df.columns.str.lower()
+
         return df
 
     return pd.DataFrame()
@@ -33,8 +36,12 @@ def get_fixtures():
     if fixtures_df.empty:
         return jsonify({"error": "No fixtures available"}), 404
 
-    for key in request.args:
+    # Normalize request arguments to lowercase
+    query_params = {key.lower(): value for key, value in request.args.items()}
+
+    # Apply filters dynamically based on query params
+    for key, value in query_params.items():
         if key in fixtures_df.columns:
-            fixtures_df = fixtures_df[fixtures_df[key].astype(str) == request.args[key]]
+            fixtures_df = fixtures_df[fixtures_df[key].astype(str) == value]
 
     return jsonify(fixtures_df.to_dict(orient="records"))
