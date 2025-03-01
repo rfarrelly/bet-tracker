@@ -15,11 +15,25 @@
             <a href="/fixtures" class="text-blue-500 hover:underline">← Back to Fixtures</a>
         </div>
 
+        <!-- Filter Form -->
+        <form method="GET" action="/bets" class="mb-6 flex flex-wrap gap-4">
+            <select name="bet_type" class="border p-2 rounded">
+                <option value="">All Bet Types</option>
+                <option value="single" {% if request.args.get('bet_type') == 'single' %}selected{% endif %}>Single</option>
+                <option value="accumulator" {% if request.args.get('bet_type') == 'accumulator' %}selected{% endif %}>Accumulator</option>
+            </select>
+
+            <input type="text" name="user_id" placeholder="User ID" class="border p-2 rounded" value="{{ request.args.get('user_id', '') }}">
+
+            <input type="date" name="date" class="border p-2 rounded" value="{{ request.args.get('date', '') }}">
+
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Filter</button>
+        </form>
+
         <!-- Bets Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for bet in bets %}
                 {% if bet.bet_type == "single" %}
-                    <!-- Single Bets -->
                     {% for selection in bet.selections %}
                     <div class="bg-white shadow-md rounded-lg p-4 border border-gray-200">
                         <h2 class="text-xl font-semibold text-gray-800">Single Bet</h2>
