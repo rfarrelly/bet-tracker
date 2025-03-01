@@ -6,44 +6,31 @@
     <title>Upcoming Fixtures</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 text-gray-900">
+<body class="bg-gray-900 text-gray-100">
     <div class="container mx-auto p-6">
 
         <!-- Navigation Bar -->
         <div class="mb-4 flex space-x-4">
-            <a href="/fixtures" class="bg-blue-500 text-white p-2 rounded">Upcoming Fixtures</a>
-            <a href="/bets" class="bg-green-500 text-white p-2 rounded">My Bets</a>
+            <a href="/fixtures" class="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded">Upcoming Fixtures</a>
+            <a href="/bets" class="bg-green-600 hover:bg-green-500 text-white p-2 rounded">My Bets</a>
         </div>
         
-        <h1 class="text-3xl font-bold mb-4">Upcoming Fixtures</h1>
+        <h1 class="text-3xl font-bold mb-4 text-blue-400">Upcoming Fixtures</h1>
 
         <!-- Filter Controls -->
         <div class="mb-4 flex space-x-4">
-            <input type="text" id="filterDiv" placeholder="Division" class="p-2 border rounded">
-            <input type="date" id="filterDate" class="p-2 border rounded">
-            <input type="time" id="filterTime" class="p-2 border rounded">
-            <button onclick="filterFixtures()" class="bg-blue-500 text-white p-2 rounded">
+            <input type="text" id="filterDiv" placeholder="Division" class="p-2 bg-gray-800 text-white border rounded">
+            <input type="date" id="filterDate" class="p-2 bg-gray-800 text-white border rounded">
+            <input type="time" id="filterTime" class="p-2 bg-gray-800 text-white border rounded">
+            <button onclick="filterFixtures()" class="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded">
                 Filter
             </button>
         </div>
 
-        <!-- Betting Controls -->
-        <div class="mb-4 flex space-x-4">
-            <select id="betType" class="p-2 border rounded">
-                <option value="single">Single</option>
-                <option value="accumulator">Accumulator</option>
-            </select>
-            <input type="text" id="username" placeholder="Username" class="p-2 border rounded w-1/3">
-            <input type="text" id="stake" placeholder="Stake" class="p-2 border rounded w-1/3">
-            <button onclick="placeBet()" class="bg-green-500 text-white p-2 rounded">
-                Place Bet
-            </button>
-        </div>
-
         <!-- Fixtures Table -->
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <div class="bg-gray-800 shadow-md rounded-lg overflow-hidden">
             <table class="min-w-full border-collapse">
-                <thead class="bg-blue-500 text-white">
+                <thead class="bg-blue-600 text-white">
                     <tr>
                         <th class="p-2">Select</th>
                         <th class="p-2">Div</th>
@@ -59,7 +46,7 @@
                 </thead>
                 <tbody id="fixturesTable">
                     {% for row in fixtures %}
-                    <tr class="border-b">
+                    <tr class="border-b border-gray-700">
                         <td class="p-2 text-center">
                             <input type="checkbox" class="fixture-checkbox" data-home="{{ row['home'] }}" data-away="{{ row['away'] }}">
                         </td>
@@ -72,7 +59,7 @@
                         <td class="p-2">{{ row['b365d'] }}</td>
                         <td class="p-2">{{ row['b365a'] }}</td>
                         <td class="p-2">
-                            <select class="market-select p-1 border rounded">
+                            <select class="market-select p-1 bg-gray-700 text-white border rounded">
                                 <option value="home">Home</option>
                                 <option value="draw">Draw</option>
                                 <option value="away">Away</option>
@@ -84,119 +71,5 @@
             </table>
         </div>
     </div>
-
-    <script>
-        async function filterFixtures() {
-            let div = document.getElementById("filterDiv").value;
-            let dateInput = document.getElementById("filterDate").value;
-            let time = document.getElementById("filterTime").value;
-
-            let params = new URLSearchParams();
-            if (div) params.append("div", div);
-
-            let formattedDate = dateInput ? new Date(dateInput).toISOString().split("T")[0] : "";
-            if (formattedDate) params.append("date", formattedDate);
-
-            if (time) params.append("time", time);
-
-            try {
-                let response = await fetch(`http://127.0.0.1:5000/fixtures/api?${params.toString()}`);
-                let fixtures = await response.json();
-
-                let tableBody = document.getElementById("fixturesTable");
-                tableBody.innerHTML = ""; // Clear existing rows
-
-                fixtures.forEach(fixture => {
-                    let row = document.createElement("tr");
-                    row.classList.add("border-b");
-
-                    row.innerHTML = `
-                        <td class="p-2 text-center">
-                            <input type="checkbox" class="fixture-checkbox" data-home="${fixture.home}" data-away="${fixture.away}">
-                        </td>
-                        <td class="p-2">${fixture.div || "N/A"}</td>
-                        <td class="p-2">${fixture.date || "N/A"}</td>
-                        <td class="p-2">${fixture.time || "N/A"}</td>
-                        <td class="p-2">${fixture.home || "N/A"}</td>
-                        <td class="p-2">${fixture.away || "N/A"}</td>
-                        <td class="p-2">${fixture.b365h || "N/A"}</td>
-                        <td class="p-2">${fixture.b365d || "N/A"}</td>
-                        <td class="p-2">${fixture.b365a || "N/A"}</td>
-                        <td class="p-2">
-                            <select class="market-select p-1 border rounded">
-                                <option value="home">Home</option>
-                                <option value="draw">Draw</option>
-                                <option value="away">Away</option>
-                            </select>
-                        </td>
-                    `;
-
-                    tableBody.appendChild(row);
-                });
-            } catch (error) {
-                console.error("Error fetching fixtures:", error);
-            }
-        }
-
-        async function placeBet() {
-            let betType = document.getElementById("betType").value;
-            let username = document.getElementById("username").value;
-            let stake = document.getElementById("stake").value;
-            let selectedFixtures = [];
-
-            let firstOdds = null;
-
-            document.querySelectorAll(".fixture-checkbox:checked").forEach(checkbox => {
-                let row = checkbox.closest("tr");
-                let selectedMarket = row.querySelector("select").value; 
-
-                let oddsCellIndex = selectedMarket === "home" ? 6 : selectedMarket === "draw" ? 7 : 8;
-                let odds = parseFloat(row.children[oddsCellIndex].textContent.trim());  
-
-                if (!firstOdds) firstOdds = odds;
-
-                selectedFixtures.push({
-                    home: checkbox.dataset.home,
-                    away: checkbox.dataset.away,
-                    market: selectedMarket,
-                    odds: odds
-                });
-            });
-
-            if (!username || selectedFixtures.length === 0 || !stake) {
-                alert("Please enter a username, stake, and select at least one fixture.");
-                return;
-            }
-
-            let betData = {
-                user_id: username,
-                bet_type: betType,
-                stake: parseFloat(stake),
-                odds: firstOdds,
-                selections: selectedFixtures
-            };
-
-            console.log("🔹 Sending Bet Data:", betData);
-
-            try {
-                let response = await fetch("http://127.0.0.1:5000/bets", {  // Change `/bets/place` to `/bets/`
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(betData)
-                });
-
-                if (response.ok) {
-                    alert("Bet placed successfully!");
-                } else {
-                    alert("Error placing bet.");
-                }
-            } catch (error) {
-                console.error("API Error:", error);
-                alert("Failed to connect to the server.");
-            }
-        }
-    </script>
 </body>
 </html>
