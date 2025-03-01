@@ -1,5 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
+<style>
+    input, select {
+        background-color: #1f2937 !important; /* bg-gray-800 */
+        color: white !important;
+        border: 1px solid #4b5563; /* border-gray-600 */
+    }
+
+    input:focus, select:focus {
+        background-color: #1f2937 !important; 
+        color: white !important;
+        border-color: #9ca3af !important; 
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Fix for autofill background color and text color in Chrome */
+    input:-webkit-autofill,
+    input:-webkit-autofill:focus {
+        background-color: #1f2937 !important;
+        color: white !important;
+        -webkit-text-fill-color: white !important;
+        -webkit-box-shadow: 0 0 0px 1000px #1f2937 inset !important;
+    }
+</style>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
