@@ -27,6 +27,26 @@
             </button>
         </div>
 
+        <!-- Betting Controls -->
+        <div class="mb-4 flex space-x-4">
+            <!-- Bet Type Selection -->
+            <select id="betType" class="p-2 bg-gray-800 text-white border rounded">
+                <option value="single">Single</option>
+                <option value="accumulator">Accumulator</option>
+            </select>
+
+            <!-- Username Input -->
+            <input type="text" id="username" placeholder="Username" class="p-2 bg-gray-800 text-white border rounded"">
+
+            <!-- Stake Input -->
+            <input type="number" id="stake" placeholder="Stake" class="p-2 bg-gray-800 text-white border rounded" min="0" step="0.01">
+
+            <!-- Place Bet Button -->
+            <button onclick="placeBet()" class="bg-green-500 text-white p-2 rounded">
+                Place Bet
+            </button>
+        </div>
+
         <!-- Fixtures Table -->
         <div class="bg-gray-800 shadow-md rounded-lg overflow-hidden">
             <table class="min-w-full border-collapse">
@@ -71,5 +91,119 @@
             </table>
         </div>
     </div>
+
+    <script>
+        async function filterFixtures() {
+            let div = document.getElementById("filterDiv").value;
+            let dateInput = document.getElementById("filterDate").value;
+            let time = document.getElementById("filterTime").value;
+
+            let params = new URLSearchParams();
+            if (div) params.append("div", div);
+
+            let formattedDate = dateInput ? new Date(dateInput).toISOString().split("T")[0] : "";
+            if (formattedDate) params.append("date", formattedDate);
+
+            if (time) params.append("time", time);
+
+            try {
+                let response = await fetch(`http://127.0.0.1:5000/fixtures/api?${params.toString()}`);
+                let fixtures = await response.json();
+
+                let tableBody = document.getElementById("fixturesTable");
+                tableBody.innerHTML = ""; // Clear existing rows
+
+                fixtures.forEach(fixture => {
+                    let row = document.createElement("tr");
+                    row.classList.add("border-b");
+
+                    row.innerHTML = `
+                        <td class="p-2 text-center">
+                            <input type="checkbox" class="fixture-checkbox" data-home="${fixture.home}" data-away="${fixture.away}">
+                        </td>
+                        <td class="p-2">${fixture.div || "N/A"}</td>
+                        <td class="p-2">${fixture.date || "N/A"}</td>
+                        <td class="p-2">${fixture.time || "N/A"}</td>
+                        <td class="p-2">${fixture.home || "N/A"}</td>
+                        <td class="p-2">${fixture.away || "N/A"}</td>
+                        <td class="p-2">${fixture.b365h || "N/A"}</td>
+                        <td class="p-2">${fixture.b365d || "N/A"}</td>
+                        <td class="p-2">${fixture.b365a || "N/A"}</td>
+                        <td class="p-2">
+                            <select class="market-select p-1 border rounded">
+                                <option value="home">Home</option>
+                                <option value="draw">Draw</option>
+                                <option value="away">Away</option>
+                            </select>
+                        </td>
+                    `;
+
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error("Error fetching fixtures:", error);
+            }
+        }
+
+        async function placeBet() {
+            let betType = document.getElementById("betType").value;
+            let username = document.getElementById("username").value;
+            let stake = document.getElementById("stake").value;
+            let selectedFixtures = [];
+
+            let firstOdds = null;
+
+            document.querySelectorAll(".fixture-checkbox:checked").forEach(checkbox => {
+                let row = checkbox.closest("tr");
+                let selectedMarket = row.querySelector("select").value; 
+
+                let oddsCellIndex = selectedMarket === "home" ? 6 : selectedMarket === "draw" ? 7 : 8;
+                let odds = parseFloat(row.children[oddsCellIndex].textContent.trim());  
+
+                if (!firstOdds) firstOdds = odds;
+
+                selectedFixtures.push({
+                    home: checkbox.dataset.home,
+                    away: checkbox.dataset.away,
+                    market: selectedMarket,
+                    odds: odds
+                });
+            });
+
+            if (!username || selectedFixtures.length === 0 || !stake) {
+                alert("Please enter a username, stake, and select at least one fixture.");
+                return;
+            }
+
+            let betData = {
+                user_id: username,
+                bet_type: betType,
+                stake: parseFloat(stake),
+                odds: firstOdds,
+                selections: selectedFixtures
+            };
+
+            console.log("🔹 Sending Bet Data:", betData);
+
+            try {
+                let response = await fetch("http://127.0.0.1:5000/bets", {  // Change `/bets/place` to `/bets/`
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(betData)
+                });
+
+                if (response.ok) {
+                    alert("Bet placed successfully!");
+                } else {
+                    alert("Error placing bet.");
+                }
+            } catch (error) {
+                console.error("API Error:", error);
+                alert("Failed to connect to the server.");
+            }
+        }
+    </script>
 </body>
 </html>
