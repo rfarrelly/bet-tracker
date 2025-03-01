@@ -22,6 +22,7 @@ def load_fixtures():
     return pd.DataFrame()
 
 
+# 🏠 Render Fixtures Page (HTML)
 @fixture_routes.route("/")
 def fixtures_page():
     fixtures_df = load_fixtures()
@@ -29,6 +30,7 @@ def fixtures_page():
     return render_template("index.html", fixtures=fixtures)
 
 
+# 📌 API Endpoint: Fetch Fixtures (JSON)
 @fixture_routes.route("/api", methods=["GET"])
 def get_fixtures():
     fixtures_df = load_fixtures()

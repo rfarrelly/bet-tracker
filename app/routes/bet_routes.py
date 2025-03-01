@@ -7,12 +7,18 @@ import json
 bet_routes = Blueprint("bets", __name__)
 
 
+# 🏠 Render Bets Page (HTML)
 @bet_routes.route("/")
 def bets_page():
     bets = Bet.query.all()
 
-    if not bets:
-        print("⚠️ No bets found in the database!")
+    # Deserialize selections before passing to template
+    for bet in bets:
+        try:
+            bet.selections = json.loads(bet.selections)
+        except json.JSONDecodeError:
+            bet.selections = []  # Fallback in case of bad data
+
     return render_template("bets.html", bets=bets)
 
 
@@ -21,27 +27,54 @@ def add_bet():
     data = request.get_json()
     print("🔹 Received Bet Data:", data)
 
-    if "odds" not in data or not isinstance(data["odds"], (int, float)):
-        return jsonify({"error": "'odds' must be a number"}), 400
+    if "selections" not in data or not isinstance(data["selections"], list):
+        return jsonify({"error": "'selections' must be a list"}), 400
 
-    selections_str = ",".join(
-        [f"{s['home']} vs {s['away']} - {s['market']}" for s in data["selections"]]
-    )
+    # Convert selections to a JSON string for storage
+    selections_json = json.dumps(data["selections"])
 
-    new_bet = Bet(
-        user_id=data["user_id"],
-        bet_type=data["bet_type"],
-        stake=data["stake"],
-        odds=float(data["odds"]),
-        selections=selections_str,
-    )
+    # Compute Accumulator Odds (Product of All Odds)
+    if data["bet_type"] == "accumulator":
+        accumulator_odds = 1.0
+        for selection in data["selections"]:
+            accumulator_odds *= float(selection["odds"])  # Ensure float conversion
+    else:
+        accumulator_odds = float(data["odds"])
 
-    db.session.add(new_bet)
+    if data["bet_type"] == "single":
+        for selection in data["selections"]:
+            new_bet = Bet(
+                user_id=data["user_id"],
+                bet_type="single",
+                stake=data["stake"],
+                odds=float(selection["odds"]),  # Assign correct odds for each selection
+                selections=json.dumps([selection]),  # Store as a single selection
+            )
+            db.session.add(new_bet)
+    else:
+        selections_str = json.dumps(
+            data["selections"]
+        )  # Keep multiple selections for acca
+        acca_odds = 1.0
+        for selection in data["selections"]:
+            acca_odds *= float(selection["odds"])  # Multiply odds for accumulator
+
+        new_bet = Bet(
+            user_id=data["user_id"],
+            bet_type="accumulator",
+            stake=data["stake"],
+            odds=round(acca_odds, 2),  # Store combined odds
+            selections=selections_str,
+        )
+        db.session.add(new_bet)
+
     db.session.commit()
+
     return jsonify({"message": "Bet added successfully"}), 201
 
 
-@bet_routes.route("/", methods=["GET"])
+# 📌 API Endpoint: Fetch Bets
+@bet_routes.route("/api", methods=["GET"])
 def get_bets():
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
@@ -73,7 +106,8 @@ def get_bets():
     )
 
 
-@bet_routes.route("/<int:bet_id>", methods=["PUT"])
+# 📌 API Endpoint: Update a Bet
+@bet_routes.route("/api/<int:bet_id>", methods=["PUT"])
 def update_bet(bet_id):
     bet = Bet.query.get(bet_id)
     if not bet:
@@ -87,7 +121,8 @@ def update_bet(bet_id):
     return jsonify({"message": "Bet updated successfully"})
 
 
-@bet_routes.route("/<int:bet_id>", methods=["DELETE"])
+# 📌 API Endpoint: Delete a Bet
+@bet_routes.route("/api/<int:bet_id>", methods=["DELETE"])
 def delete_bet(bet_id):
     bet = Bet.query.get(bet_id)
     if not bet:
