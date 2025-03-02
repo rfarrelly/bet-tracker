@@ -99,34 +99,46 @@ def place_bet():
         user_id = data.get("user_id")
         bet_type = data.get("bet_type")
         stake = data.get("stake")
-        odds = data.get("odds")
         selections = data.get("selections", [])
 
-        if (
-            not user_id
-            or not bet_type
-            or stake is None
-            or odds is None
-            or not selections
-        ):
+        if not user_id or not bet_type or stake is None or not selections:
             return jsonify({"error": "Missing required fields"}), 400
 
-        # Ensure selections are stored as a JSON string
-        selections_json = json.dumps(selections)
+        placed_bets = []
 
-        new_bet = Bet(
-            user_id=user_id,
-            bet_type=bet_type,
-            stake=stake,
-            odds=odds,
-            selections=selections_json,
-        )
+        if bet_type == "single":
+            # Create a separate Bet entry for each single bet selection
+            for selection in selections:
+                new_bet = Bet(
+                    user_id=user_id,
+                    bet_type="single",
+                    stake=stake,
+                    odds=selection["odds"],  # Use selection's odds
+                    selections=json.dumps([selection]),  # Store as list
+                )
+                db.session.add(new_bet)
+                placed_bets.append(new_bet)
+        else:
+            # Accumulator - Store all selections together with the provided odds
+            new_bet = Bet(
+                user_id=user_id,
+                bet_type="accumulator",
+                stake=stake,
+                odds=data.get("odds"),  # Single odds value
+                selections=json.dumps(selections),
+            )
+            db.session.add(new_bet)
+            placed_bets.append(new_bet)
 
-        db.session.add(new_bet)
         db.session.commit()
 
         return (
-            jsonify({"message": "Bet placed successfully", "bet_id": new_bet.id}),
+            jsonify(
+                {
+                    "message": "Bet(s) placed successfully",
+                    "bet_ids": [bet.id for bet in placed_bets],
+                }
+            ),
             201,
         )
 

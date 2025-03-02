@@ -21,3 +21,15 @@ class Bet(db.Model):
 
     def __repr__(self):
         return f"<Bet id={self.id}, user={self.user_id}, type={self.bet_type}, stake={self.stake}, status={self.status}>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "bet_type": self.bet_type,
+            "stake": self.stake,
+            "odds": self.odds,
+            "selections": self.selections,
+            "status": self.status,
+            "timestamp": self.timestamp.isoformat(),
+        }
