@@ -88,10 +88,37 @@
                         </span>
 
                         <p class="text-gray-400 text-sm">{{ bet.timestamp }}</p>
+
+                        <!-- Delete Button -->
+                        <button onclick="deleteBet('{{ bet.id }}')" class="text-red-500 hover:text-red-700">
+                            🗑️
+                        </button>
                     </div>
                 </div>
             {% endfor %}
         </div>
     </div>
+    
+    <script>
+        async function deleteBet(betId) {
+            if (!confirm("Are you sure you want to delete this bet?")) return;
+    
+            try {
+                let response = await fetch(`/bets/${betId}`, {
+                    method: "DELETE"
+                });
+    
+                if (response.ok) {
+                    alert("Bet deleted successfully!");
+                    location.reload();  // Refresh page to update UI
+                } else {
+                    alert("Failed to delete bet.");
+                }
+            } catch (error) {
+                console.error("Error deleting bet:", error);
+                alert("An error occurred.");
+            }
+        }
+    </script>    
 </body>
 </html>

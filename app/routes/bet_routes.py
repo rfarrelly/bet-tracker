@@ -135,17 +135,13 @@ def place_bet():
         return jsonify({"error": str(e)}), 500
 
 
-# 🗑️ API Endpoint: Delete a Bet
-@bet_routes.route("/delete/<int:bet_id>", methods=["DELETE"])
+@bet_routes.route("/<int:bet_id>", methods=["DELETE"])
 def delete_bet(bet_id):
-    try:
-        bet = Bet.query.get_or_404(bet_id)
+    bet = Bet.query.get(bet_id)
+    if not bet:
+        return jsonify({"error": "Bet not found"}), 404
 
-        db.session.delete(bet)
-        db.session.commit()
+    db.session.delete(bet)
+    db.session.commit()
 
-        return jsonify({"message": "Bet deleted successfully"}), 200
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+    return jsonify({"message": "Bet deleted successfully"}), 200
