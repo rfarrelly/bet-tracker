@@ -9,9 +9,9 @@ def load_fixtures():
     fixtures_file = os.path.join(current_app.root_path, "data", "fixtures.csv")
     if os.path.exists(fixtures_file):
         df = pd.read_csv(fixtures_file)
-        if "Date" in df.columns:
-            df["Date"] = pd.to_datetime(
-                df["Date"], dayfirst=True, errors="coerce"
+        if "date" in df.columns:
+            df["date"] = pd.to_datetime(
+                df["date"], dayfirst=False, errors="coerce"
             ).dt.strftime("%Y-%m-%d")
 
         # Normalize column names to lowercase to avoid JS mismatches

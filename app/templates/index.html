@@ -77,9 +77,10 @@
                 <thead class="bg-blue-600 text-white">
                     <tr>
                         <th class="p-2">Select</th>
-                        <th class="p-2">Div</th>
+                        <th class="p-2">League</th>
                         <th class="p-2">Date</th>
                         <th class="p-2">Time</th>
+                        <th class="p-2">Day</th>
                         <th class="p-2">Home</th>
                         <th class="p-2">Away</th>
                         <th class="p-2">B365 Home</th>
@@ -94,14 +95,15 @@
                         <td class="p-2 text-center">
                             <input type="checkbox" class="fixture-checkbox" data-home="{{ row['home'] }}" data-away="{{ row['away'] }}">
                         </td>
-                        <td class="p-2">{{ row['div'] }}</td>
+                        <td class="p-2">{{ row['league'] }}</td>
                         <td class="p-2">{{ row['date'] }}</td>
                         <td class="p-2">{{ row['time'] }}</td>
+                        <td class="p-2">{{ row['day'] }}</td>
                         <td class="p-2">{{ row['home'] }}</td>
                         <td class="p-2">{{ row['away'] }}</td>
-                        <td class="p-2">{{ row['b365h'] }}</td>
-                        <td class="p-2">{{ row['b365d'] }}</td>
-                        <td class="p-2">{{ row['b365a'] }}</td>
+                        <td class="p-2">{{ row['bet365h'] }}</td>
+                        <td class="p-2">{{ row['bet365d'] }}</td>
+                        <td class="p-2">{{ row['bet365a'] }}</td>
                         <td class="p-2">
                             <select class="market-select p-1 bg-gray-700 text-white border rounded">
                                 <option value="home">Home</option>
@@ -145,14 +147,15 @@
                         <td class="p-2 text-center">
                             <input type="checkbox" class="fixture-checkbox" data-home="${fixture.home}" data-away="${fixture.away}">
                         </td>
-                        <td class="p-2">${fixture.div || "N/A"}</td>
+                        <td class="p-2">${fixture.league || "N/A"}</td>
                         <td class="p-2">${fixture.date || "N/A"}</td>
                         <td class="p-2">${fixture.time || "N/A"}</td>
+                        <td class="p-2">${fixture.day || "N/A"}</td>
                         <td class="p-2">${fixture.home || "N/A"}</td>
                         <td class="p-2">${fixture.away || "N/A"}</td>
-                        <td class="p-2">${fixture.b365h || "N/A"}</td>
-                        <td class="p-2">${fixture.b365d || "N/A"}</td>
-                        <td class="p-2">${fixture.b365a || "N/A"}</td>
+                        <td class="p-2">${fixture.bet365h || "N/A"}</td>
+                        <td class="p-2">${fixture.bet365d || "N/A"}</td>
+                        <td class="p-2">${fixture.bet365a || "N/A"}</td>
                         <td class="p-2">
                             <select class="market-select p-1 border rounded">
                                 <option value="home">Home</option>
@@ -181,7 +184,8 @@
                 let row = checkbox.closest("tr");
                 let selectedMarket = row.querySelector("select").value; 
 
-                let oddsCellIndex = selectedMarket === "home" ? 6 : selectedMarket === "draw" ? 7 : 8;
+                // ✅ Fix the odds column index
+                let oddsCellIndex = selectedMarket === "home" ? 7 : selectedMarket === "draw" ? 8 : 9;
                 let odds = parseFloat(row.children[oddsCellIndex].textContent.trim());  
 
                 if (!firstOdds) firstOdds = odds;
@@ -210,7 +214,7 @@
             console.log("🔹 Sending Bet Data:", betData);
 
             try {
-                let response = await fetch("http://127.0.0.1:5000/bets", {  // Change `/bets/place` to `/bets/`
+                let response = await fetch("http://127.0.0.1:5000/bets", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
