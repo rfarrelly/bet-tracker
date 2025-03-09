@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, render_template
-from models.bet import Bet
+from models.bet import Bet, BetSelection
 from datetime import datetime, timedelta
 from app import db
 import json
@@ -30,12 +30,9 @@ def bets_page():
 
         bets = query.all()
 
-        # Convert selections from JSON format
+        # Ensure selections are included
         for bet in bets:
-            try:
-                bet.selections = json.loads(bet.selections)
-            except (json.JSONDecodeError, TypeError):
-                bet.selections = []
+            bet.selections = BetSelection.query.filter_by(bet_id=bet.id).all()
 
         return render_template("bets.html", bets=bets)
 
@@ -70,21 +67,7 @@ def get_bets():
 
         bets = query.all()
 
-        return jsonify(
-            [
-                {
-                    "id": bet.id,
-                    "user_id": bet.user_id,
-                    "bet_type": bet.bet_type,
-                    "stake": bet.stake,
-                    "odds": bet.odds,
-                    "selections": json.loads(bet.selections) if bet.selections else [],
-                    "status": bet.status,
-                    "timestamp": bet.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                }
-                for bet in bets
-            ]
-        )
+        return jsonify([bet.to_dict() for bet in bets])
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -107,27 +90,50 @@ def place_bet():
         placed_bets = []
 
         if bet_type == "single":
-            # Create a separate Bet entry for each single bet selection
             for selection in selections:
                 new_bet = Bet(
                     user_id=user_id,
                     bet_type="single",
                     stake=stake,
-                    odds=selection["odds"],  # Use selection's odds
-                    selections=json.dumps([selection]),  # Store as list
+                    odds=selection["odds"],
                 )
                 db.session.add(new_bet)
+                db.session.flush()  # Get the bet ID before committing
+
+                new_selection = BetSelection(
+                    bet_id=new_bet.id,
+                    home=selection["home"],
+                    away=selection["away"],
+                    market=selection["market"],
+                    odds=selection["odds"],
+                )
+                db.session.add(new_selection)
+
                 placed_bets.append(new_bet)
         else:
-            # Accumulator - Store all selections together with the provided odds
+            total_odds = 1
+            for sel in selections:
+                total_odds *= sel["odds"]
+
             new_bet = Bet(
                 user_id=user_id,
                 bet_type="accumulator",
                 stake=stake,
-                odds=data.get("odds"),  # Single odds value
-                selections=json.dumps(selections),
+                odds=total_odds,
             )
             db.session.add(new_bet)
+            db.session.flush()
+
+            for sel in selections:
+                new_selection = BetSelection(
+                    bet_id=new_bet.id,
+                    home=sel["home"],
+                    away=sel["away"],
+                    market=sel["market"],
+                    odds=sel["odds"],
+                )
+                db.session.add(new_selection)
+
             placed_bets.append(new_bet)
 
         db.session.commit()

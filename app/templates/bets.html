@@ -109,7 +109,7 @@
                         <div class="mt-2">
                             {% for selection in bet.selections %}
                             <p><strong>Match:</strong> {{ selection.home }} vs {{ selection.away }}</p>
-                            <p><strong>Selection:</strong> {{ selection.market | capitalize }} (Odds: {{ selection.odds }})</p>
+                            <p><strong>Selection:</strong> {{ selection.market | capitalize }} (Odds: {{ "%.2f"|format(selection.odds) }})</p>
                             {% endfor %}
                         </div>
 

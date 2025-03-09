@@ -1,5 +1,5 @@
 from app import db
-from datetime import datetime
+import datetime
 from sqlalchemy import CheckConstraint
 
 
@@ -9,9 +9,15 @@ class Bet(db.Model):
     bet_type = db.Column(db.String(20), nullable=False)  # Single, Accumulator
     stake = db.Column(db.Float, nullable=False)
     odds = db.Column(db.Float, nullable=False)
-    selections = db.Column(db.String(255), nullable=False)
     status = db.Column(db.String(20), default="Pending")
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(
+        db.DateTime, default=datetime.datetime.now(datetime.timezone.utc)
+    )
+
+    # Define relationship to selections
+    selections = db.relationship(
+        "BetSelection", backref="bet", lazy=True, cascade="all, delete-orphan"
+    )
 
     # Ensure stake and odds are positive values
     __table_args__ = (
@@ -29,7 +35,26 @@ class Bet(db.Model):
             "bet_type": self.bet_type,
             "stake": self.stake,
             "odds": self.odds,
-            "selections": self.selections,
             "status": self.status,
             "timestamp": self.timestamp.isoformat(),
+            "selections": [sel.to_dict() for sel in self.selections],
+        }
+
+
+class BetSelection(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    bet_id = db.Column(
+        db.Integer, db.ForeignKey("bet.id", ondelete="CASCADE"), nullable=False
+    )
+    home = db.Column(db.String(50), nullable=False)
+    away = db.Column(db.String(50), nullable=False)
+    market = db.Column(db.String(20), nullable=False)  # 'home', 'away', etc.
+    odds = db.Column(db.Float, nullable=False)
+
+    def to_dict(self):
+        return {
+            "home": self.home,
+            "away": self.away,
+            "market": self.market,
+            "odds": self.odds,
         }
