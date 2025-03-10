@@ -9,12 +9,13 @@ def load_fixtures():
     fixtures_file = os.path.join(current_app.root_path, "data", "fixtures.csv")
     if os.path.exists(fixtures_file):
         df = pd.read_csv(fixtures_file)
+
         if "date" in df.columns:
             df["date"] = pd.to_datetime(
                 df["date"], dayfirst=False, errors="coerce"
             ).dt.strftime("%Y-%m-%d")
 
-        # Normalize column names to lowercase to avoid JS mismatches
+        # Normalize column names to lowercase
         df.columns = df.columns.str.lower()
 
         return df
@@ -41,7 +42,7 @@ def get_fixtures():
     # Normalize request arguments to lowercase
     query_params = {key.lower(): value for key, value in request.args.items()}
 
-    # Apply filters dynamically based on query params
+    # Apply filters dynamically
     for key, value in query_params.items():
         if key in fixtures_df.columns:
             fixtures_df = fixtures_df[fixtures_df[key].astype(str) == value]

@@ -72,6 +72,7 @@
                             <div class="mt-2">
                                 <p><strong>Match:</strong> {{ selection.home }} vs {{ selection.away }}</p>
                                 <p><strong>Selection:</strong> {{ selection.market | capitalize }}</p>
+                                <p><strong>Date:</strong> {{ selection.date.strftime('%Y-%m-%d') }}</p>
                             </div>
 
                             <div class="mt-3 flex justify-between items-center">
@@ -110,6 +111,7 @@
                             {% for selection in bet.selections %}
                             <p><strong>Match:</strong> {{ selection.home }} vs {{ selection.away }}</p>
                             <p><strong>Selection:</strong> {{ selection.market | capitalize }} (Odds: {{ "%.2f"|format(selection.odds) }})</p>
+                            <p><strong>Date:</strong> {{ selection.date.strftime('%Y-%m-%d') }}</p>
                             {% endfor %}
                         </div>
 

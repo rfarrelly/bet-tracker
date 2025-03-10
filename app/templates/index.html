@@ -60,7 +60,7 @@
             </select>
 
             <!-- Username Input -->
-            <input type="text" id="username" placeholder="Username" class="p-2 bg-gray-800 text-white border rounded"">
+            <input type="text" id="username" placeholder="Username" class="p-2 bg-gray-800 text-white border rounded">
 
             <!-- Stake Input -->
             <input type="number" id="stake" placeholder="Stake" class="p-2 bg-gray-800 text-white border rounded" min="0" step="0.01">
@@ -120,12 +120,12 @@
 
     <script>
         async function filterFixtures() {
-            let div = document.getElementById("filterDiv").value;
+            let league = document.getElementById("filterDiv").value;
             let dateInput = document.getElementById("filterDate").value;
             let time = document.getElementById("filterTime").value;
 
             let params = new URLSearchParams();
-            if (div) params.append("div", div);
+            if (league) params.append("league", league);  // 🔹 FIXED: Use "league" instead of "div"
 
             let formattedDate = dateInput ? new Date(dateInput).toISOString().split("T")[0] : "";
             if (formattedDate) params.append("date", formattedDate);
@@ -157,7 +157,7 @@
                         <td class="p-2">${fixture.bet365d || "N/A"}</td>
                         <td class="p-2">${fixture.bet365a || "N/A"}</td>
                         <td class="p-2">
-                            <select class="market-select p-1 border rounded">
+                            <select class="market-select p-1 bg-gray-700 text-white border rounded">
                                 <option value="home">Home</option>
                                 <option value="draw">Draw</option>
                                 <option value="away">Away</option>
@@ -182,19 +182,18 @@
 
             document.querySelectorAll(".fixture-checkbox:checked").forEach(checkbox => {
                 let row = checkbox.closest("tr");
-                let selectedMarket = row.querySelector("select").value; 
+                let selectedMarket = row.querySelector("select").value;
 
-                // ✅ Fix the odds column index
                 let oddsCellIndex = selectedMarket === "home" ? 7 : selectedMarket === "draw" ? 8 : 9;
-                let odds = parseFloat(row.children[oddsCellIndex].textContent.trim());  
-
-                if (!firstOdds) firstOdds = odds;
+                let odds = parseFloat(row.children[oddsCellIndex].textContent.trim());
+                let betDate = row.children[2].textContent.trim();
 
                 selectedFixtures.push({
                     home: checkbox.dataset.home,
                     away: checkbox.dataset.away,
                     market: selectedMarket,
-                    odds: odds
+                    odds: odds,
+                    date: betDate,
                 });
             });
 
@@ -207,7 +206,6 @@
                 user_id: username,
                 bet_type: betType,
                 stake: parseFloat(stake),
-                odds: firstOdds,
                 selections: selectedFixtures
             };
 
@@ -216,16 +214,15 @@
             try {
                 let response = await fetch("http://127.0.0.1:5000/bets", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(betData)
                 });
 
+                let result = await response.json();
                 if (response.ok) {
-                    alert("Bet placed successfully!");
+                    alert(`Bet placed successfully! Bet ID(s): ${result.bet_ids.join(", ")}`);
                 } else {
-                    alert("Error placing bet.");
+                    alert(`Error: ${result.error}`);
                 }
             } catch (error) {
                 console.error("API Error:", error);

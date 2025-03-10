@@ -13,7 +13,7 @@ def bets_page():
     try:
         bet_type = request.args.get("bet_type")
         user_id = request.args.get("user_id")
-        date = request.args.get("date")
+        match_date = request.args.get("date")
 
         query = Bet.query
 
@@ -23,16 +23,20 @@ def bets_page():
         if user_id:
             query = query.filter(Bet.user_id == user_id)
 
-        if date:
-            date_start = datetime.strptime(date, "%Y-%m-%d")
-            date_end = date_start + timedelta(days=1)
-            query = query.filter(Bet.timestamp >= date_start, Bet.timestamp < date_end)
-
         bets = query.all()
 
-        # Ensure selections are included
+        # Ensure selections (including match date) are included
         for bet in bets:
             bet.selections = BetSelection.query.filter_by(bet_id=bet.id).all()
+
+        # Filter by match date if provided
+        if match_date:
+            match_date_obj = datetime.strptime(match_date, "%Y-%m-%d").date()
+            bets = [
+                bet
+                for bet in bets
+                if any(sel.date == match_date_obj for sel in bet.selections)
+            ]
 
         return render_template("bets.html", bets=bets)
 
@@ -48,6 +52,7 @@ def get_bets():
         user_id = request.args.get("user_id")
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
+        match_date = request.args.get("match_date")  # New filter
 
         query = Bet.query
 
@@ -66,6 +71,15 @@ def get_bets():
             query = query.filter(Bet.timestamp < end_datetime)
 
         bets = query.all()
+
+        # Filter by match date if provided
+        if match_date:
+            match_date_obj = datetime.strptime(match_date, "%Y-%m-%d").date()
+            bets = [
+                bet
+                for bet in bets
+                if any(sel.date == match_date_obj for sel in bet.selections)
+            ]
 
         return jsonify([bet.to_dict() for bet in bets])
 
@@ -91,6 +105,8 @@ def place_bet():
 
         if bet_type == "single":
             for selection in selections:
+                match_date = datetime.strptime(selection["date"], "%Y-%m-%d").date()
+
                 new_bet = Bet(
                     user_id=user_id,
                     bet_type="single",
@@ -106,6 +122,7 @@ def place_bet():
                     away=selection["away"],
                     market=selection["market"],
                     odds=selection["odds"],
+                    date=match_date,  # Store match date
                 )
                 db.session.add(new_selection)
 
@@ -125,12 +142,15 @@ def place_bet():
             db.session.flush()
 
             for sel in selections:
+                match_date = datetime.strptime(sel["date"], "%Y-%m-%d").date()
+
                 new_selection = BetSelection(
                     bet_id=new_bet.id,
                     home=sel["home"],
                     away=sel["away"],
                     market=sel["market"],
                     odds=sel["odds"],
+                    date=match_date,  # Store match date
                 )
                 db.session.add(new_selection)
 

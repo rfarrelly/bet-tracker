@@ -50,6 +50,7 @@ class BetSelection(db.Model):
     away = db.Column(db.String(50), nullable=False)
     market = db.Column(db.String(20), nullable=False)  # 'home', 'away', etc.
     odds = db.Column(db.Float, nullable=False)
+    date = db.Column(db.Date, nullable=False)
 
     def to_dict(self):
         return {
@@ -57,4 +58,5 @@ class BetSelection(db.Model):
             "away": self.away,
             "market": self.market,
             "odds": self.odds,
+            "date": self.date.isoformat(),
         }
